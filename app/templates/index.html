@@ -1,16 +1,57 @@
+{# app/templates/index.html #}
 {% extends "base.html" %}
 {% import "bootstrap/wtf.html" as wtf %}
 
-{% block title %}Flasky{% endblock %}
+{% block title %}Avaliação contínua: Aula 080{% endblock %}
 
 {% block page_content %}
 <div class="page-header">
-    <h1>Hello, {% if name %}{{ name }}{% else %}Stranger{% endif %}!</h1>
-    {% if not known %}
-    <p>Pleased to meet you!</p>
-    {% else %}
-    <p>Happy to see you again!</p>
-    {% endif %}
+    <h1>Olá, {{ name or 'Visitante' }}!</h1>
+    <p>Prazer em conhecê-lo!</p>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{
+            message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 </div>
-{{ wtf.quick_form(form) }}
+
+<form method="post" action="{{ url_for('.index') }}">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        {{ form.name.label(class="control-label") }}
+        {{ form.name(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.email.label(class="control-label") }}
+        {{ form.email(class="form-control") }}
+    </div>
+    <div class="form-group">
+        {{ form.submit(class="btn btn-default") }}
+    </div>
+</form>
+
+<hr/>
+
+<h2>Relação de usuários cadastrados</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Nome do usuário</th>
+            <th>Função</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for u in users %}
+        <tr>
+            <td>{{ u.username }}</td>
+            <td>{% if u.role %}{{ u.role.name }}{% else %}User{% endif %}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="2">Nenhum usuário cadastrado.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
 {% endblock %}
