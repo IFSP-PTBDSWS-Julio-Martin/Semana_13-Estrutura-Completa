@@ -1,31 +1,40 @@
-from flask import render_template, session, redirect, url_for, current_app
+from flask import render_template, session, redirect, url_for, current_app, flash
 from .. import db
 from ..models import User
 from ..email import send_email, send_simple_message
 from . import main
 from .forms import NameForm
 
-
 @main.route('/', methods=['GET', 'POST'])
 def index():
     form = NameForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(username=form.name.data).first()
+        username = form.name.data
+        user = User.query.filter_by(username=username).first()
         if user is None:
-            user = User(username=form.name.data)
+            user = User(username=username)
             db.session.add(user)
             db.session.commit()
             session['known'] = False
-            print('FLASKY_ADMIN: ' + str(current_app.config['FLASKY_ADMIN']), flush=True)
-            if current_app.config['FLASKY_ADMIN']:
-                #send_email(current_app.config['FLASKY_ADMIN'], 'New User', 'mail/new_user', user=user)
-                print('Enviando mensagem...', flush=True)
-                send_simple_message([current_app.config['FLASKY_ADMIN'], "flaskaulasweb@zohomail.com"], 'Novo usuário', form.name.data)
-                print('Mensagem enviada...', flush=True)
+
+            admin = current_app.config.get('FLASKY_ADMIN')
+            if admin:
+                try:
+                    send_simple_message([admin],
+                                        'Novo usuário',
+                                        f'Novo usuário: {username} - email: {form.email.data or "não informado"}')
+                    flash('E-mail enviado para o Administrador do sistema, notificando o cadastro de um novo usuário.', 'success')
+                except Exception as e:
+                    flash('Falha ao enviar o e-mail de notificação: ' + str(e), 'danger')
         else:
             session['known'] = True
-        session['name'] = form.name.data
+
+        session['name'] = username
         return redirect(url_for('.index'))
+
+    users = User.query.order_by(User.username).all()
     return render_template('index.html',
-                           form=form, name=session.get('name'),
-                           known=session.get('known', False))
+                           form=form,
+                           name=session.get('name'),
+                           known=session.get('known', False),
+                           users=users)
